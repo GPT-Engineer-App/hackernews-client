@@ -1,17 +1,45 @@
-// Update this page (the content is just a fallback if you fail and example)
-// Use chakra-ui
-import { Container, Text, VStack } from "@chakra-ui/react";
-
-// Example of using react-icons
-// import { FaRocket } from "react-icons/fa";
-// <IconButton aria-label="Add" icon={<FaRocket />} size="lg" />; // IconButton would also have to be imported from chakra
+import { Box, Button, Container, Heading, List, ListItem, Text, VStack } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
 
 const Index = () => {
+  const [stories, setStories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchTopStories = async () => {
+    setIsLoading(true);
+    const response = await fetch("https://hacker-news.firebaseio.com/v0/topstories.json?print=pretty");
+    const storyIds = await response.json();
+    const topStoryIds = storyIds.slice(0, 15);
+
+    const storyPromises = topStoryIds.map(id =>
+      fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json?print=pretty`).then(res => res.json())
+    );
+
+    const stories = await Promise.all(storyPromises);
+    setStories(stories);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTopStories();
+  }, []);
+
   return (
-    <Container centerContent maxW="container.md" height="100vh" display="flex" flexDirection="column" justifyContent="center" alignItems="center">
-      <VStack spacing={4}>
-        <Text fontSize="2xl">Your Blank Canvas</Text>
-        <Text>Chat with the agent to start making edits.</Text>
+    <Container maxW="container.md" py={8}>
+      <VStack spacing={8}>
+        <Heading as="h1" size="xl">Top HackerNews Stories</Heading>
+        <Button onClick={fetchTopStories} isLoading={isLoading} loadingText="Refreshing...">
+          Refresh Stories
+        </Button>
+        <List spacing={3} width="full">
+          {stories.map(story => (
+            <ListItem key={story.id} p={4} shadow="md" borderWidth="1px" borderRadius="md">
+              <Text fontSize="lg" fontWeight="bold">{story.title}</Text>
+              <Text fontSize="sm">By {story.by}</Text>
+              <Text fontSize="sm">{new Date(story.time * 1000).toLocaleDateString()}</Text>
+            </ListItem>
+          ))}
+        </List>
       </VStack>
     </Container>
   );
